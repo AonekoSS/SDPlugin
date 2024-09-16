@@ -1,0 +1,3 @@
+こっちはstable-diffusion.cppだよ。
+ヘッダーファイル「stable-diffusion.h」だけあればビルドできる。
+DLLは好きなバージョンのを使おう。
