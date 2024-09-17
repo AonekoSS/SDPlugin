@@ -87,8 +87,6 @@ struct FilterInfo {
 /// プロパティキー
 enum PropertyKey {
 	ITEM_FUNCTION = 1,
-	ITEM_SAMPLER,
-	ITEM_SCHEDULE,
 	ITEM_STEPS,
 	ITEM_STRENGTH,
 	ITEM_CONTROL_STRENGTH,
@@ -133,26 +131,6 @@ static void InitProperty(Property& p) {
 	type.addValue((int)Mode::IMG2IMG, "IMG2IMG");
 	type.addValue((int)Mode::CONTROL, "CONTROL");
 
-	auto sapmper = p.addEnumerationItem(ITEM_SAMPLER, "Sample Method");
-	sapmper.addValue(EULER_A, "euler_a");
-	sapmper.addValue(EULER, "euler");
-	sapmper.addValue(HEUN, "heun");
-	sapmper.addValue(DPM2, "dpm2");
-	sapmper.addValue(DPMPP2S_A, "dpm++2s_a");
-	sapmper.addValue(DPMPP2M, "dpm++2m");
-	sapmper.addValue(DPMPP2Mv2, "dpm++2mv2");
-	sapmper.addValue(IPNDM, "ipndm");
-	sapmper.addValue(IPNDM_V, "ipndm_v");
-	sapmper.addValue(LCM, "lcm");
-
-	auto schedule = p.addEnumerationItem(ITEM_SCHEDULE, "Schedule");
-	schedule.addValue(DEFAULT, "default");
-	schedule.addValue(DISCRETE, "discrete");
-	schedule.addValue(KARRAS, "karras");
-	schedule.addValue(EXPONENTIAL, "exponential");
-	schedule.addValue(AYS, "ays");
-	schedule.addValue(GITS, "gits");
-
 	p.addIntegerItem(ITEM_STEPS, "Steps", 20, 1, 60);
 	p.addDecimalItem(ITEM_STRENGTH, "Stremgth", 0.5, 0.0, 1.0);
 	p.addDecimalItem(ITEM_CONTROL_STRENGTH, "Control Stremgth", 8.0, 1.0, 20.0);
@@ -179,8 +157,6 @@ static void SwitchToMode(StableDiffusion::Mode mode, StableDiffusion::Params& pa
 	params = config;
 
 	// プロパティへの反映
-	property.setEnumeration(ITEM_SAMPLER, config.sample_method);
-	property.setEnumeration(ITEM_SCHEDULE, config.schedule);
 	property.setInteger(ITEM_STEPS, config.sample_steps);
 	property.setDecimal(ITEM_STRENGTH, config.strength);
 	property.setDecimal(ITEM_CONTROL_STRENGTH, config.control_strength);
@@ -188,21 +164,43 @@ static void SwitchToMode(StableDiffusion::Mode mode, StableDiffusion::Params& pa
 	property.setString(ITEM_NPROMPT, config.negative_prompt);
 }
 
+/// プロパティ同期
+static bool SyncProperty(Int itemKey, PropertyObject propertyObject, Ptr data) {
+	auto& info = *static_cast<FilterInfo*>(data);
+	auto& params = info.params;
+	Property property(info.server, propertyObject);
+
+	switch (itemKey) {
+	case ITEM_FUNCTION:
+	{
+		// モード変更を検出してコンフィグを切り替える
+		auto mode = Mode(property.getEnumeration(ITEM_FUNCTION));
+		if (params.mode != mode) {
+			SwitchToMode(mode, params, property);
+			return true;
+		}
+	}
+	break;
+	case ITEM_STEPS:
+		return property.sync(ITEM_STEPS, params.sample_steps);
+	case ITEM_STRENGTH:
+		return property.sync(ITEM_STRENGTH, params.strength);
+	case ITEM_CONTROL_STRENGTH:
+		return property.sync(ITEM_CONTROL_STRENGTH, params.control_strength);
+	case ITEM_PROMPT:
+		return property.sync(ITEM_PROMPT, params.prompt);
+	case ITEM_NPROMPT:
+		return property.sync(ITEM_NPROMPT, params.negative_prompt);
+	}
+	return false;
+}
+
 /// プロパティコールバック
-static void TRIGLAV_PLUGIN_CALLBACK TriglavPlugInFilterPropertyCallBack(TriglavPlugInInt* result, TriglavPlugInPropertyObject propertyObject, const TriglavPlugInInt itemKey, const TriglavPlugInInt notify, TriglavPlugInPtr data) {
+static void TRIGLAV_PLUGIN_CALLBACK FilterPropertyCallBack(Int* result, PropertyObject propertyObject, const Int itemKey, const Int notify, Ptr data) {
 	(*result) = kTriglavPlugInPropertyCallBackResultNoModify;
 	if (notify != kTriglavPlugInPropertyCallBackNotifyValueChanged) return;
-
-	// モード変更を検出してコンフィグを切り替える
-	if (itemKey == ITEM_FUNCTION) {
-		auto& info = *static_cast<FilterInfo*>(data);
-		auto& params = info.params;
-		Property property(info.server, propertyObject);
-		auto mode = Mode(property.getEnumeration(ITEM_FUNCTION));
-		if (info.params.mode != mode) {
-			SwitchToMode(mode, params, property);
+	if (SyncProperty(itemKey, propertyObject, data)) {
 			(*result) = kTriglavPlugInPropertyCallBackResultModify;
-		}
 	}
 }
 
@@ -211,6 +209,8 @@ static void TRIGLAV_PLUGIN_CALLBACK TriglavPlugInFilterPropertyCallBack(TriglavP
 /// @return 正常終了ならtrue
 static bool InitializeFilter(TriglavPlugInServer* server, TriglavPlugInPtr* data) {
 	TriglavPlugIn::Initialize initialize(server);
+	auto info = static_cast<FilterInfo*>(*data);
+	info->server = server;
 
 	//	フィルタカテゴリ名とフィルタ名の設定
 	initialize.SetCategoryName("Stable Diffusion", 'x');
@@ -229,9 +229,10 @@ static bool InitializeFilter(TriglavPlugInServer* server, TriglavPlugInPtr* data
 	auto property = Property(server);
 	InitProperty(property);
 	initialize.SetProperty(property);
+	SwitchToMode(Mode::TXT2IMG, info->params, property);
 
 	//	プロパティコールバック
-	initialize.SetPropertyCallBack(TriglavPlugInFilterPropertyCallBack, *data);
+	initialize.SetPropertyCallBack(FilterPropertyCallBack, *data);
 
 	return true;
 }
@@ -247,12 +248,11 @@ static bool TerminateFilter(TriglavPlugInServer* server, TriglavPlugInPtr* data)
 /// @return 正常終了ならtrue
 static bool RunFilter(TriglavPlugInServer* server, TriglavPlugInPtr* data) {
 	Run run(server);
+	auto info = static_cast<FilterInfo*>(*data);
+	info->server = server;
 
 	// 生成ライブラリの初期化
 	StableDiffusion::Initialize(g_BasePath);
-
-	// プロパティ
-	Property property(server, run.GetProperty());
 
 	// 選択範囲の取得
 	auto selectAreaRect = run.GetSelectArea();
@@ -265,11 +265,6 @@ static bool RunFilter(TriglavPlugInServer* server, TriglavPlugInPtr* data) {
 	offscreenDestination.GetDestination();
 	offscreenSelectArea.GetSelectArea();
 
-	// 設定のスイッチ
-	auto& info = *static_cast<FilterInfo*>(*data);
-	auto& params = info.params;
-	SwitchToMode(Mode::TXT2IMG, params, property);
-
 	// メイン処理
 	while (true) {
 		if (run.Process(Run::States::Start) == Run::Results::Exit) break;
@@ -277,13 +272,7 @@ static bool RunFilter(TriglavPlugInServer* server, TriglavPlugInPtr* data) {
 		run.Progress(0);
 
 		// パラメータの取得
-		params.sample_method = sample_method_t(property.getEnumeration(ITEM_SAMPLER));
-		params.schedule = schedule_t(property.getEnumeration(ITEM_SCHEDULE));
-		params.sample_steps = property.getInteger(ITEM_STEPS);
-		params.strength = property.getDecimal(ITEM_STRENGTH);
-		params.control_strength = property.getDecimal(ITEM_CONTROL_STRENGTH);
-		params.prompt = property.getString(ITEM_PROMPT);
-		params.negative_prompt = property.getString(ITEM_NPROMPT);
+		auto params = info->params;
 		if (params.prompt.empty()) { print("empty prompt!"); return false; }
 		if (params.model_path.empty()) { print("empty model_path!"); return false; }
 

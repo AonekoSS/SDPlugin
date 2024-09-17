@@ -121,14 +121,6 @@ namespace TriglavPlugIn {
 			service->getLocalCodeCharsProc(&str, object);
 			return (length && str) ? std::string(str, length) : std::string();
 		}
-		static std::wstring convertW(Server const* server, StringObject object) {
-			auto service = server->serviceSuite.stringService;
-			Int length{};
-			UniChar const* str{};
-			service->getLocalCodeLengthProc(&length, object);
-			service->getUnicodeCharsProc(&str, object);
-			return (length && str) ? std::wstring(reinterpret_cast<const wchar_t*>(str), length) : std::wstring();
-		}
 	};
 
 	// プロパティオブジェクト
@@ -215,19 +207,22 @@ namespace TriglavPlugIn {
 		auto setEnumeration(int key, int val) const { service2()->setEnumerationValueProc(*this, key, val); }
 		auto setString(int key, String val) const { service2()->setStringValueProc(*this, key, val(server())); }
 
-		bool getBoolean(int key) const { Bool val; service()->getBooleanValueProc(&val, *this, key); return val; }
-		int getInteger(int key) const { Int val; service()->getIntegerValueProc(&val, *this, key); return val; }
-		double getDecimal(int key) const { Double val; service()->getDecimalValueProc(&val, *this, key); return val; }
 		int getEnumeration(int key) const { Int val; service2()->getEnumerationValueProc(&val, *this, key); return val; }
-		std::string getString(int key) const {
-			StringObject obj;
-			service2()->getStringValueProc(&obj, *this, key);
-			return String::convert(server(), obj);
+
+		// プロパティ同期
+		template <class VAL, class RES>
+		inline static bool syncVal(VAL& val, const RES& res) {
+			if (val != res) { val = static_cast<VAL>(res); return true; }
+			return false;
 		}
-		std::wstring getStringW(int key) const {
+		bool sync(int key, bool& val) const { Bool res; service()->getBooleanValueProc(&res, *this, key); return syncVal(val, res!=0); }
+		bool sync(int key, int& val) const { Int res; service()->getIntegerValueProc(&res, *this, key); return syncVal(val, res); }
+		bool sync(int key, float& val) const { Double res; service()->getDecimalValueProc(&res, *this, key); return syncVal(val, res); }
+		bool sync(int key, std::string& val) const {
 			StringObject obj;
 			service2()->getStringValueProc(&obj, *this, key);
-			return String::convertW(server(), obj);
+			auto res = String::convert(server(), obj);
+			return syncVal(val, res);
 		}
 	};
 
