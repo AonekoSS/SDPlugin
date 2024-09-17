@@ -8,7 +8,10 @@
 
 ## 使用方法
 
-以下のパスにフォルダごと放り込んでください。
+プラグインのバイナリは[リリースページ](https://github.com/AonekoSS/SDPlugin/releases)からダウンロードしてください。
+
+ダウンロードした「SDPlugin.zip」ファイルを解答したら、そのフォルダを以下の場所に入れてください。
+
 > ドキュメント/CELSYS/CLIPStudioModule/PlugIn/PAINT
 
 [stable-diffusion.cppのリリースページ](https://github.com/leejet/stable-diffusion.cpp/releases) から自分の環境に合ったファイルをダウンロードしてきて、中に入ってる「stable-diffusion.dll」ファイルをプラグインと同じフォルダに入れてください。
