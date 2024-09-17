@@ -90,6 +90,14 @@ namespace TriglavPlugIn {
 			if (object) reset(*pservice, object);
 		}
 
+		// ユニコードから
+		String(Server const* server, std::wstring const& str) : ObjectBase{ server } {
+			auto const pservice = service();
+			Object object{};
+			pservice->createWithUnicodeStringProc(&object, reinterpret_cast<const UniChar*>(str.c_str()), str.length());
+			if (object) reset(*pservice, object);
+		}
+
 		// リソースIDから
 		String(Server const* server, int stringId) : ObjectBase{ server } {
 			auto const pservice = service();
@@ -106,6 +114,14 @@ namespace TriglavPlugIn {
 			service->getLocalCodeLengthProc(&length, object);
 			service->getLocalCodeCharsProc(&str, object);
 			return (length && str) ? std::string(str, length) : std::string();
+		}
+		static std::wstring convertW(Server const* server, StringObject object) {
+			auto service = server->serviceSuite.stringService;
+			Int length{};
+			UniChar const* str{};
+			service->getLocalCodeLengthProc(&length, object);
+			service->getUnicodeCharsProc(&str, object);
+			return (length && str) ? std::wstring(reinterpret_cast<const wchar_t*>(str), length) : std::wstring();
 		}
 	};
 
@@ -204,6 +220,11 @@ namespace TriglavPlugIn {
 			StringObject obj;
 			service2()->getStringValueProc(&obj, *this, key);
 			return String::convert(server(), obj);
+		}
+		std::wstring getStringW(int key) const {
+			StringObject obj;
+			service2()->getStringValueProc(&obj, *this, key);
+			return String::convertW(server(), obj);
 		}
 	};
 
