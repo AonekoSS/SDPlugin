@@ -31,13 +31,13 @@
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
-    <CopyFileToFolders Include="stable-diffusion.cpp\stable-diffusion.dll">
-      <Filter>リソース ファイル</Filter>
-    </CopyFileToFolders>
     <CopyFileToFolders Include="SDPlugin.ini">
       <Filter>リソース ファイル</Filter>
     </CopyFileToFolders>
-    <CopyFileToFolders Include="readme.txt">
+    <CopyFileToFolders Include="README.md">
+      <Filter>リソース ファイル</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="stable-diffusion.dll">
       <Filter>リソース ファイル</Filter>
     </CopyFileToFolders>
   </ItemGroup>

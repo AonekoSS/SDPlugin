@@ -171,17 +171,13 @@
     <ResourceCompile Include="resource.rc" />
   </ItemGroup>
   <ItemGroup>
-    <CopyFileToFolders Include="stable-diffusion.cpp\stable-diffusion.dll">
-      <FileType>Document</FileType>
-    </CopyFileToFolders>
+    <CopyFileToFolders Include="SDPlugin.ini" />
   </ItemGroup>
   <ItemGroup>
-    <CopyFileToFolders Include="SDPlugin.ini">
-      <FileType>Document</FileType>
-    </CopyFileToFolders>
+    <CopyFileToFolders Include="README.md" />
   </ItemGroup>
   <ItemGroup>
-    <CopyFileToFolders Include="readme.txt" />
+    <CopyFileToFolders Include="stable-diffusion.dll" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h" />
