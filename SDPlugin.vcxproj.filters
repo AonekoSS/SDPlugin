@@ -37,6 +37,9 @@
     <CopyFileToFolders Include="README.md">
       <Filter>リソース ファイル</Filter>
     </CopyFileToFolders>
+    <CopyFileToFolders Include="stable-diffusion.dll">
+      <Filter>リソース ファイル</Filter>
+    </CopyFileToFolders>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="SDPlugin.h">

@@ -177,6 +177,9 @@
     <CopyFileToFolders Include="README.md" />
   </ItemGroup>
   <ItemGroup>
+    <CopyFileToFolders Include="stable-diffusion.dll" />
+  </ItemGroup>
+  <ItemGroup>
     <ClInclude Include="resource.h" />
     <ClInclude Include="SDPlugin.h" />
     <ClInclude Include="StableDiffusion.h" />
