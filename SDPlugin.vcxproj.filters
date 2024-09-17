@@ -31,9 +31,6 @@
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
-    <CopyFileToFolders Include="stable-diffusion.cpp\stable-diffusion.dll">
-      <Filter>リソース ファイル</Filter>
-    </CopyFileToFolders>
     <CopyFileToFolders Include="SDPlugin.ini">
       <Filter>リソース ファイル</Filter>
     </CopyFileToFolders>

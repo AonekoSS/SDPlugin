@@ -171,11 +171,6 @@
     <ResourceCompile Include="resource.rc" />
   </ItemGroup>
   <ItemGroup>
-    <CopyFileToFolders Include="stable-diffusion.cpp\stable-diffusion.dll">
-      <FileType>Document</FileType>
-    </CopyFileToFolders>
-  </ItemGroup>
-  <ItemGroup>
     <CopyFileToFolders Include="SDPlugin.ini">
       <FileType>Document</FileType>
     </CopyFileToFolders>
