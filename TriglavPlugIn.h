@@ -4,6 +4,7 @@
  * @brief クリスタ用フィルターSDKのラッパー
  */
 #pragma once
+#include <functional>
 
 #include "TriglavPlugInSDK/TriglavPlugInSDK.h"
 
@@ -79,33 +80,38 @@ namespace TriglavPlugIn {
 
 	/// 文字列オブジェクト
 	class String : public ObjectBase< StringObject, StringService > {
+		std::function<Object(Service const*)> make_;
 	public:
-		auto service() const noexcept { return server()->serviceSuite.stringService; }
-
 		// 生文字列から
-		String(Server const* server, std::string const& str) : ObjectBase{ server } {
-			auto const pservice = service();
+		String(std::string const& str) : ObjectBase{ nullptr }, make_{ [str](Service const* service) {
 			Object object{};
-			pservice->createWithAsciiStringProc(&object, str.c_str(), str.length());
-			if (object) reset(*pservice, object);
-		}
+			service->createWithAsciiStringProc(&object, str.c_str(), str.length());
+			return object;
+		} } {}
+		String(const char* str) : String(std::string(str)) {}
 
 		// ユニコードから
-		String(Server const* server, std::wstring const& str) : ObjectBase{ server } {
-			auto const pservice = service();
+		String(std::wstring const& str) : ObjectBase{ nullptr }, make_{ [str](Service const* service) {
 			Object object{};
-			pservice->createWithUnicodeStringProc(&object, reinterpret_cast<const UniChar*>(str.c_str()), str.length());
+			service->createWithUnicodeStringProc(&object, reinterpret_cast<const UniChar*>(str.c_str()), str.length());
+			return object;
+		} } {}
+		String(const wchar_t* str) : String(std::wstring(str)) {}
+
+		// ここで実体化する
+		Object operator()(Server const* server) {
+			auto pservice = server->serviceSuite.stringService;
+			auto object = make_(pservice);
 			if (object) reset(*pservice, object);
+			return object;
 		}
 
-		// リソースIDから
-		String(Server const* server, int stringId) : ObjectBase{ server } {
-			auto const pservice = service();
-			Object object{};
-			pservice->createWithStringIDProc(&object, stringId, server->hostObject);
-			if (object) reset(*pservice, object);
-		}
+	private:
+		// こっちのインターフェイスは隠しとく
+		constexpr operator Object() const noexcept;
+		constexpr explicit operator bool() const noexcept;
 
+	public:
 		// オブジェクトから文字列
 		static std::string convert(Server const* server, StringObject object) {
 			auto service = server->serviceSuite.stringService;
@@ -164,44 +170,41 @@ namespace TriglavPlugIn {
 			EnumerationItem(Server const* server, Service2 const& service, Property const& propaty, int key) :
 				server_{ server }, service_{ service }, propaty_{ propaty }, key_{ key } {}
 			// アイテム追加
-			auto addValue(int val, std::string const& name) const {
-				service_.addEnumerationItemProc(propaty_, key_, val, String(server_, name), 0);
+			auto addValue(int val, String name) const {
+				service_.addEnumerationItemProc(propaty_, key_, val, name(server_), 0);
 			}
 		};
 
 		// アイテム追加：真偽
-		auto addBooleanItem(int key, std::string const& caption, bool def) const {
-			auto name = String(server(), caption);
+		auto addBooleanItem(int key, String name, bool def) const {
 			auto pservice = service();
-			pservice->addItemProc(*this, key, static_cast<Int>(Type::Boolean), valueKind, inputKind, name, 0);
+			pservice->addItemProc(*this, key, static_cast<Int>(Type::Boolean), valueKind, inputKind, name(server()), 0);
 			pservice->setBooleanDefaultValueProc(*this, key, def);
 		}
 		// アイテム追加：整数
-		auto addIntegerItem(int key, std::string const& name, int def, int min, int max) const {
+		auto addIntegerItem(int key, String name, int def, int min, int max) const {
 			auto pservice = service();
-			pservice->addItemProc(*this, key, static_cast<Int>(Type::Integer), valueKind, inputKind, String(server(), name), 0);
+			pservice->addItemProc(*this, key, static_cast<Int>(Type::Integer), valueKind, inputKind, name(server()), 0);
 			pservice->setIntegerDefaultValueProc(*this, key, def);
 			pservice->setIntegerMinValueProc(*this, key, min);
 			pservice->setIntegerMaxValueProc(*this, key, max);
 		}
 		// アイテム追加：実数
-		auto addDecimalItem(int key, std::string const& name, double def, double min, double max) const {
+		auto addDecimalItem(int key, String name, double def, double min, double max) const {
 			auto pservice = service();
-			pservice->addItemProc(*this, key, static_cast<Int>(Type::Decimal), valueKind, inputKind, String(server(), name), 0);
+			pservice->addItemProc(*this, key, static_cast<Int>(Type::Decimal), valueKind, inputKind, name(server()), 0);
 			pservice->setDecimalDefaultValueProc(*this, key, def);
 			pservice->setDecimalMinValueProc(*this, key, min);
 			pservice->setDecimalMaxValueProc(*this, key, max);
 		}
 		// アイテム追加：選択
-		auto addEnumerationItem(int key, std::string const& caption) const {
-			auto name = String(server(), caption);
-			service()->addItemProc(*this, key, static_cast<Int>(Type::Enumeration), valueKind, inputKind, name, 0);
+		auto addEnumerationItem(int key, String name) const {
+			service()->addItemProc(*this, key, static_cast<Int>(Type::Enumeration), valueKind, inputKind, name(server()), 0);
 			return EnumerationItem(server(), *service2(), *this, key);
 		}
 		// アイテム追加：文字列
-		auto addStringItem(int key, std::string const& caption, int size) const {
-			auto name = String(server(), caption);
-			service()->addItemProc(*this, key, static_cast<Int>(Type::String), valueKind, inputKind, name, 0);
+		auto addStringItem(int key, String name, int size) const {
+			service()->addItemProc(*this, key, static_cast<Int>(Type::String), valueKind, inputKind, name(server()), 0);
 			auto pservice = service2();
 			pservice->setStringMaxLengthProc(*this, key, size);
 		}
@@ -210,7 +213,7 @@ namespace TriglavPlugIn {
 		auto setInteger(int key, int val) const { service()->setIntegerValueProc(*this, key, val); }
 		auto setDecimal(int key, double val) const { service()->setDecimalValueProc(*this, key, val); }
 		auto setEnumeration(int key, int val) const { service2()->setEnumerationValueProc(*this, key, val); }
-		auto setString(int key, std::string const& val) const { service2()->setStringValueProc(*this, key, String(server(), val)); }
+		auto setString(int key, String val) const { service2()->setStringValueProc(*this, key, val(server())); }
 
 		bool getBoolean(int key) const { Bool val; service()->getBooleanValueProc(&val, *this, key); return val; }
 		int getInteger(int key) const { Int val; service()->getIntegerValueProc(&val, *this, key); return val; }
@@ -301,7 +304,7 @@ namespace TriglavPlugIn {
 			if (hostVersion < kTriglavPlugInNeedHostVersion) return false;
 
 			// モジュールIDと種別の設定（フィルターに固定）
-			initialize_->setModuleIDProc(hostObject_, String(server_, moduleID));
+			initialize_->setModuleIDProc(hostObject_, String(moduleID)(server_));
 			initialize_->setModuleKindProc(hostObject_, kTriglavPlugInModuleSwitchKindFilter);
 			return true;
 		}
@@ -313,11 +316,11 @@ namespace TriglavPlugIn {
 		Initialize(Server const* server) : RecordBase{ server } {
 			TriglavPlugInGetFilterInitializeRecord(record_);
 		}
-		void SetCategoryName(const std::string& name, char accessKey) {
-			TriglavPlugInFilterInitializeSetFilterCategoryName(record_, hostObject_, String(server_, name), accessKey);
+		void SetCategoryName(String name, char accessKey) {
+			TriglavPlugInFilterInitializeSetFilterCategoryName(record_, hostObject_, name(server_), accessKey);
 		}
-		void SetFilterName(const std::string& name, char accessKey) {
-			TriglavPlugInFilterInitializeSetFilterName(record_, hostObject_, String(server_, name), accessKey);
+		void SetFilterName(String name, char accessKey) {
+			TriglavPlugInFilterInitializeSetFilterName(record_, hostObject_, name(server_), accessKey);
 		}
 		void SetCanPreview(bool preview) {
 			TriglavPlugInFilterInitializeSetCanPreview(record_, hostObject_, preview);
