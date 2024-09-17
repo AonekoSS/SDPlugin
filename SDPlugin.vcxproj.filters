@@ -34,7 +34,7 @@
     <CopyFileToFolders Include="SDPlugin.ini">
       <Filter>リソース ファイル</Filter>
     </CopyFileToFolders>
-    <CopyFileToFolders Include="readme.txt">
+    <CopyFileToFolders Include="README.md">
       <Filter>リソース ファイル</Filter>
     </CopyFileToFolders>
   </ItemGroup>

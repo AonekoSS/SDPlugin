@@ -171,12 +171,10 @@
     <ResourceCompile Include="resource.rc" />
   </ItemGroup>
   <ItemGroup>
-    <CopyFileToFolders Include="SDPlugin.ini">
-      <FileType>Document</FileType>
-    </CopyFileToFolders>
+    <CopyFileToFolders Include="SDPlugin.ini" />
   </ItemGroup>
   <ItemGroup>
-    <CopyFileToFolders Include="readme.txt" />
+    <CopyFileToFolders Include="README.md" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h" />
