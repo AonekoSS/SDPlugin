@@ -69,24 +69,24 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IntDir>.\obj</IntDir>
+    <IntDir>..\obj\</IntDir>
     <OutDir>$(USERPROFILE)\Documents\CELSYS\CLIPStudioModule\PlugIn\PAINT\$(ProjectName)\</OutDir>
     <TargetExt>.cpm</TargetExt>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IntDir>.\obj</IntDir>
+    <IntDir>..\obj\</IntDir>
     <OutDir>$(USERPROFILE)\Documents\CELSYS\CLIPStudioModule\PlugIn\PAINT\$(ProjectName)\</OutDir>
     <TargetExt>.cpm</TargetExt>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <TargetExt>.cpm</TargetExt>
     <OutDir>$(USERPROFILE)\Documents\CELSYS\CLIPStudioModule\PlugIn\PAINT\$(ProjectName)\</OutDir>
-    <IntDir>.\obj</IntDir>
+    <IntDir>..\obj\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <TargetExt>.cpm</TargetExt>
     <OutDir>$(USERPROFILE)\Documents\CELSYS\CLIPStudioModule\PlugIn\PAINT\$(ProjectName)\</OutDir>
-    <IntDir>.\obj</IntDir>
+    <IntDir>..\obj\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -174,9 +174,6 @@
     <CopyFileToFolders Include="SDPlugin.ini" />
   </ItemGroup>
   <ItemGroup>
-    <CopyFileToFolders Include="README.md" />
-  </ItemGroup>
-  <ItemGroup>
     <CopyFileToFolders Include="stable-diffusion.dll" />
   </ItemGroup>
   <ItemGroup>
@@ -184,6 +181,11 @@
     <ClInclude Include="SDPlugin.h" />
     <ClInclude Include="StableDiffusion.h" />
     <ClInclude Include="TriglavPlugIn.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <CopyFileToFolders Include="install.bat">
+      <FileType>Document</FileType>
+    </CopyFileToFolders>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

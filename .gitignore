@@ -5,8 +5,6 @@
 
 # Custom
 .vscode/
-stable-diffusion.dll
-
 
 # User-specific files
 *.rsuser

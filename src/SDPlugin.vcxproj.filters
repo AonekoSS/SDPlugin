@@ -34,10 +34,10 @@
     <CopyFileToFolders Include="SDPlugin.ini">
       <Filter>リソース ファイル</Filter>
     </CopyFileToFolders>
-    <CopyFileToFolders Include="README.md">
+    <CopyFileToFolders Include="stable-diffusion.dll">
       <Filter>リソース ファイル</Filter>
     </CopyFileToFolders>
-    <CopyFileToFolders Include="stable-diffusion.dll">
+    <CopyFileToFolders Include="install.bat">
       <Filter>リソース ファイル</Filter>
     </CopyFileToFolders>
   </ItemGroup>
