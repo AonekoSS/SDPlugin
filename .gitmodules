@@ -1,3 +1,3 @@
-[submodule "stable-diffusion.cpp"]
-	path = stable-diffusion.cpp
+[submodule "src/stable-diffusion.cpp"]
+	path = src/stable-diffusion.cpp
 	url = https://github.com/leejet/stable-diffusion.cpp.git
