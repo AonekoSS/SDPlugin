@@ -9,46 +9,41 @@
 このプラグインはあくまで自分で使用するために開発しています。
 
 フィルタープラグインは、株式会社セルシスの許可がない再配布を認められていません。<br>
-<small>参照： 「[CLIP STUDIO PAINT EXフィルタープラグインSDK使用許諾契約書](https://www.clipstudio.net/ja/dl/cspsdk_term/)」第4条（フィルタープラグインの再配布）</small>
+<sub>参照： 「[CLIP STUDIO PAINT EXフィルタープラグインSDK使用許諾契約書](https://www.clipstudio.net/ja/dl/cspsdk_term/)」第4条（フィルタープラグインの再配布）</sub>
 
 ただし、第三者に対して開発を委託することは認められています。<br>
-<small>参照： 「[CLIP STUDIO PAINT EXフィルタープラグインSDK使用許諾契約書](https://www.clipstudio.net/ja/dl/cspsdk_term/)」第3条（委託）</small>
+<sub>参照： 「[CLIP STUDIO PAINT EXフィルタープラグインSDK使用許諾契約書](https://www.clipstudio.net/ja/dl/cspsdk_term/)」第3条（委託）</sub>
 
 ここで公開しているプラグインは、評価やテストなど開発への協力を委託する目的で配布しています。<br>
 ダウンロードした際はフィードバックをお願いします。<br>
 
 ## 使用方法
 
-（DLL同梱する形式に変えました。次のバージョンでもう少しシンプルになります)
+プラグインのバイナリは [リリースページ](https://github.com/AonekoSS/SDPlugin/releases) からダウンロードしてください。
 
-プラグインのバイナリは[リリースページ](https://github.com/AonekoSS/SDPlugin/releases)からダウンロードしてください。
-
-ダウンロードした「SDPlugin.zip」ファイルを解答したら、そのフォルダを以下の場所に入れてください。
+ダウンロードした「SDPlugin.zip」ファイルを解答したら、フォルダ内にある「install.bat」を実行してください。<br>
+上手くいかない場合は、以下の場所にフォルダごとコピーして貰っても大丈夫です。<br>
 
 > ドキュメント/CELSYS/CLIPStudioModule/PlugIn/PAINT
 
-[stable-diffusion.cppのリリースページ](https://github.com/leejet/stable-diffusion.cpp/releases) から自分の環境に合ったファイルをダウンロードしてきて、中に入ってる「stable-diffusion.dll」ファイルをプラグインと同じフォルダに入れてください。
+クリスタのインストールされてる場所とは違うので注意してください。
 
-以下３つのファイルが同じフォルダに入ってる状態になっていればOKです。
-- SDPlugin.cpm
-- SDPlugin.ini
-- stable-diffusion.dll
-
-「SDPlugin.ini」ファイル内のモデルのパスとかを調整してください。
-
+インストール先の「SDPlugin.ini」ファイルを編集して下さい。
 ```
 [COMMON]
 	model_path = （モデルのパス）.safetensors
 ```
-（最低限、model_pathさえ設定されてれば動くはず……）
+ここにモデルへのファイルパスを入れてください。<br>
 
 あとはクリスタを起動すれば、メニューのフィルターの所に「Stable Diffusion(X)」の項目が増えてると思います。
 
 
 ## 動作環境
 
-CLIP Studio PAINT EX 1.10で動作するのを確認できました。
-それ以降のバージョンなら動くと思います。
+Windows専用です。<br>
+古いバージョンだと CLIP Studio PAINT EX 1.10 で動作するのを確認できました。<br>
+たぶん、それ以降のバージョンなら動くと思います。<br>
+（Ver 3.1.2での動作報告あり）<br>
 
 
 ## 開発メモ

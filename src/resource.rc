@@ -51,8 +51,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 0,2,0,0
- PRODUCTVERSION 0,2,0,0
+ FILEVERSION 0,4,0,0
+ PRODUCTVERSION 0,4,0,0
  FILEFLAGSMASK 0x17L
 #ifdef _DEBUG
  FILEFLAGS 0x3L
@@ -69,12 +69,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Aoneko"
             VALUE "FileDescription", "Stable Diffusion PlugIn"
-            VALUE "FileVersion", "0.2.0.0"
+            VALUE "FileVersion", "0.4.0.0"
             VALUE "InternalName", "SDPlugIn"
             VALUE "LegalCopyright", "(C) Aoneko. All Rights Reserved."
             VALUE "OriginalFilename", "SDPlugIn.cpm"
             VALUE "ProductName", "SDPlugIn"
-            VALUE "ProductVersion", "0.2.0.0"
+            VALUE "ProductVersion", "0.4.0.0"
         END
     END
     BLOCK "VarFileInfo"
