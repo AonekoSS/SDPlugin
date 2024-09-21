@@ -48,6 +48,7 @@ namespace TriglavPlugIn {
 		Int rowBytes;
 		Int pixelBytes;
 		Int r, g, b;
+		bool needOffset;
 	};
 
 	// ブロック転送処理
@@ -206,6 +207,7 @@ namespace TriglavPlugIn {
 		auto setDecimal(int key, double val) const { service()->setDecimalValueProc(*this, key, val); }
 		auto setEnumeration(int key, int val) const { service2()->setEnumerationValueProc(*this, key, val); }
 		auto setString(int key, String val) const { service2()->setStringValueProc(*this, key, val(server())); }
+		auto setStringDefault(int key, String val) const { service2()->setStringDefaultValueProc(*this, key, val(server())); }
 
 		int getEnumeration(int key) const { Int val; service2()->getEnumerationValueProc(&val, *this, key); return val; }
 
@@ -254,21 +256,30 @@ namespace TriglavPlugIn {
 			for (int i = 0; i < count; ++i) { service_->getBlockRectProc(&blockRects[i], i, *this, const_cast<Rect*>(&rect)); }
 			return blockRects;
 		}
-		void GetBlockImage(const Rect& rect, Block& block) {
+		Block GetBlockImage(const Rect& rect) {
 			Point point = { rect.left, rect.top };
-			block.rect = rect;
+			Block block{};
 			service_->getBlockImageProc(&block.address, &block.rowBytes, &block.pixelBytes, &block.rect, *this, &point);
 			service_->getRGBChannelIndexProc(&block.r, &block.g, &block.b, *this);
-		}
-		void GetBlockAlpha(const Rect& rect, Block& block) {
-			Point point = { rect.left, rect.top };
 			block.rect = rect;
+			block.needOffset = false;
+			return block;
+		}
+		Block GetBlockAlpha(const Rect& rect) {
+			Point point = { rect.left, rect.top };
+			Block block{};
 			service_->getBlockAlphaProc(&block.address, &block.rowBytes, &block.pixelBytes, &block.rect, *this, &point);
-		}
-		void GetBlockSelectArea(const Rect& rect, Block& block) {
-			Point point = { rect.left, rect.top };
 			block.rect = rect;
+			block.needOffset = false;
+			return block;
+		}
+		Block GetBlockSelectArea(const Rect& rect) {
+			Point point = { rect.left, rect.top };
+			Block block{};
 			service_->getBlockSelectAreaProc(&block.address, &block.rowBytes, &block.pixelBytes, &block.rect, *this, &point);
+			block.rect = rect;
+			block.needOffset = false;
+			return block;
 		}
 	};
 

@@ -37,9 +37,10 @@ namespace TriglavPlugIn {
 	/// @param target ターゲットの矩形
 	/// @return バイト単位でのオフセット値を返す
 	Int addressOffset(const Block& block, const Rect& target) {
+		if (!block.needOffset) return 0;
 		const auto offsetX = target.left - block.rect.left;
 		const auto offsetY = target.top - block.rect.top;
-		return offsetX * block.pixelBytes + offsetY * block.rowBytes;
+		return offsetY * block.rowBytes + offsetX * block.pixelBytes;
 	}
 
 	/// @brief ブロック転送

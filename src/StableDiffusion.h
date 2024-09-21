@@ -72,6 +72,7 @@ namespace StableDiffusion {
 		uint8_t* data() const { return static_cast<uint8_t*>(data_.get()); }
 		Image() noexcept : width{ 0 }, height{ 0 }, channel{ 0 } {}
 		Image(uint32_t w, uint32_t h, uint32_t c) : width{ w }, height{ h }, channel{ c }, data_{ malloc(w * h * c), free } {}
+		Image(int w, int h, int c) : Image{ static_cast<uint32_t>(w), static_cast<uint32_t>(h), static_cast<uint32_t>(c) } {}
 		Image(sd_image_t const& image) : width{ image.width }, height{ image.height }, channel{ image.channel }, data_{ image.data, free } {}
 	};
 
