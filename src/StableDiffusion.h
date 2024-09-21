@@ -91,6 +91,7 @@ namespace StableDiffusion {
 	/// 画像生成
 	/// @param params 生成パラメータ
 	/// @param input 入力画像（t2iのコントロールかi2iのベースに使われる）
+	/// @param progressCallback 進捗コールバック void(int step, int steps)
 	/// @return 生成された画像データ
-	extern Image Generate(const Params& params, const Image& input = Image());
+	extern Image Generate(const Params& params, const Image& input, std::function<void(int,int)> progressCallback);
 }
