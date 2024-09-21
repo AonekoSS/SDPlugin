@@ -58,7 +58,7 @@ namespace StableDiffusion {
 	}
 
 	/// ログ用コールバック
-	static void sd_log_cb(enum sd_log_level_t level, const char* log, void* data) {
+	static void log_callback(enum sd_log_level_t level, const char* log, void* data) {
 		Params* params = (Params*)data;
 		if (!log || !params || (!params->verbose && level <= SD_LOG_DEBUG)) return;
 		const char* level_name = "????";
@@ -188,10 +188,16 @@ namespace StableDiffusion {
 	/// 画像生成
 	/// @param params 生成パラメータ
 	/// @param input 入力画像（t2iのコントロールかi2iのベースに使われる）
+	/// @param progressCallback 進捗コールバック void(int step, int steps)
 	/// @return 生成された画像データ
-	Image Generate(const Params& params, const Image& input) {
-		sd_set_log_callback(sd_log_cb, (void*)&params);
+	Image Generate(const Params& params, const Image& input, std::function<void(int,int)> progressCallback) {
+		sd_set_log_callback(log_callback, (void*)&params);
 		const int batch_count = 1;
+
+		sd_set_progress_callback([](int step, int steps, float time, void* data){
+			auto callback = reinterpret_cast<decltype(progressCallback)*>(data);
+			(*callback)(step, steps);
+		}, &progressCallback);
 
 		// パラメータの調整
 		auto mode = params.mode;

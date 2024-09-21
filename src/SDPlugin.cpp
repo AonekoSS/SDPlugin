@@ -283,13 +283,11 @@ static bool RunFilter(TriglavPlugInServer* server, TriglavPlugInPtr* data) {
 	// メイン処理
 	while (true) {
 		if (run.Process(Run::States::Start) == Run::Results::Exit) break;
-		run.Total(3); // 進捗コールバック取れるようになったら切り替え
-		run.Progress(0);
-
 		// パラメータの取得
 		auto params = info->params;
 		if (params.prompt.empty()) { print("empty prompt!"); return false; }
 		if (params.model_path.empty()) { print("empty model_path!"); return false; }
+		run.Total(params.sample_steps);
 
 		// 入力画像の取得
 		Image inputImage = Image{ width, height, 3 };
@@ -303,19 +301,20 @@ static bool RunFilter(TriglavPlugInServer* server, TriglavPlugInPtr* data) {
 		if (run.Result() == Run::Results::Restart) continue;
 		if (run.Result() == Run::Results::Exit) break;
 
-		run.Progress(1);
-
 		// 生成
 		params.width = width;
 		params.height = height;
 
 		print("generate by prompt: %s", params.prompt.c_str());
 		print("input image: %d * %d", width, height);
-		auto result = StableDiffusion::Generate(params, inputImage);
+		auto result = StableDiffusion::Generate(params, inputImage,
+			[&run](int step, int steps){ // 進捗コールバック
+				run.Progress(step);
+				print("Progress %d / %d", step, steps);
+			});
+
 		print("generated: %d * %d", result.width, result.height);
 		Block outputBlock = ImageToBlock(result, offsetX, offsetY);
-
-		run.Progress(2);
 
 		// ブロック転送
 		auto destRects = offscreenDestination.GetBlockRects(selectAreaRect);
@@ -341,7 +340,6 @@ static bool RunFilter(TriglavPlugInServer* server, TriglavPlugInPtr* data) {
 		}
 		if (run.Result() == Run::Results::Restart) continue;
 		if (run.Result() == Run::Results::Exit) break;
-		run.Progress(3);
 
 		// 継続確認
 		if (run.Process(Run::States::End) != Run::Results::Restart) break;

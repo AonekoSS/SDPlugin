@@ -6,3 +6,4 @@
 #include <string>
 #include <vector>
 #include <cstdlib>
+#include <functional>
