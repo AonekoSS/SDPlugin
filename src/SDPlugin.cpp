@@ -250,7 +250,7 @@ inline Block ImageToBlock(const Image& image) {
 		.rect{ 0, 0, static_cast<Int>(image.width), static_cast<Int>(image.height)},
 		.address{ image.data() },
 		.rowBytes{ static_cast<Int>(image.width) * static_cast<Int>(image.channel)},
-		.pixelBytes{ 3 }, .r{0}, .g{1}, .b{2}
+		.pixelBytes{ static_cast<Int>(image.channel) }, .r{0}, .g{1}, .b{2}
 	};
 }
 
@@ -303,12 +303,13 @@ static bool RunFilter(TriglavPlugInServer* server, TriglavPlugInPtr* data) {
 		run.Progress(1);
 
 		// 生成
-		params.width = selectAreaRect.right - selectAreaRect.left;
-		params.height = selectAreaRect.bottom - selectAreaRect.top;
+		params.width = width;
+		params.height = height;
 
 		print("generate by prompt: %s", params.prompt.c_str());
+		print("input image: %d * %d", width, height);
 		auto result = StableDiffusion::Generate(params, inputImage);
-		print("generated: %i * %i", result.width, result.height);
+		print("generated: %d * %d", result.width, result.height);
 		Block outputBlock = ImageToBlock(result);
 
 		run.Progress(2);

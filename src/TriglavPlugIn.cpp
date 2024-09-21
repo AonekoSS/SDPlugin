@@ -36,7 +36,7 @@ namespace TriglavPlugIn {
 	/// @param block 対象のブロック
 	/// @param target ターゲットの矩形
 	/// @return バイト単位でのオフセット値を返す
-	Int adressOffset(const Block& block, const Rect& target) {
+	Int addressOffset(const Block& block, const Rect& target) {
 		const auto offsetX = target.left - block.rect.left;
 		const auto offsetY = target.top - block.rect.top;
 		return offsetX * block.pixelBytes + offsetY * block.rowBytes;
@@ -59,8 +59,8 @@ namespace TriglavPlugIn {
 
 		const auto cols = rect.right - rect.left;
 		const auto rows = rect.bottom - rect.top;
-		pbyte_t pDstRow = static_cast<pbyte_t>(dst.address) + adressOffset(dst, rect);
-		pbyte_t pSrcRow = static_cast<pbyte_t>(src.address) + adressOffset(src, rect);
+		pbyte_t pDstRow = static_cast<pbyte_t>(dst.address) + addressOffset(dst, rect);
+		pbyte_t pSrcRow = static_cast<pbyte_t>(src.address) + addressOffset(src, rect);
 		for (int y = 0; y < rows; ++y) {
 			pbyte_t pSrc = pSrcRow;
 			pbyte_t pDst = pDstRow;
@@ -97,9 +97,9 @@ namespace TriglavPlugIn {
 
 		const auto cols = rect.right - rect.left;
 		const auto rows = rect.bottom - rect.top;
-		pbyte_t pDstRow = static_cast<pbyte_t>(dst.address) + adressOffset(dst, rect);
-		pbyte_t pSrcRow = static_cast<pbyte_t>(src.address) + adressOffset(src, rect);
-		pbyte_t pAlpRow = static_cast<pbyte_t>(alpha.address) + adressOffset(alpha, rect);
+		pbyte_t pDstRow = static_cast<pbyte_t>(dst.address) + addressOffset(dst, rect);
+		pbyte_t pSrcRow = static_cast<pbyte_t>(src.address) + addressOffset(src, rect);
+		pbyte_t pAlpRow = static_cast<pbyte_t>(alpha.address) + addressOffset(alpha, rect);
 		for (int y = 0; y < rows; ++y) {
 			pbyte_t pSrc = pSrcRow;
 			pbyte_t pDst = pDstRow;
@@ -150,10 +150,10 @@ namespace TriglavPlugIn {
 
 		const auto cols = rect.right - rect.left;
 		const auto rows = rect.bottom - rect.top;
-		pbyte_t pDstRow = static_cast<pbyte_t>(dst.address) + adressOffset(dst, rect);
-		pbyte_t pSrcRow = static_cast<pbyte_t>(src.address) + adressOffset(src, rect);
-		pbyte_t pAlpRow = static_cast<pbyte_t>(alpha.address) + adressOffset(alpha, rect);
-		pbyte_t pSelRow = static_cast<pbyte_t>(select.address) + adressOffset(select, rect);
+		pbyte_t pDstRow = static_cast<pbyte_t>(dst.address) + addressOffset(dst, rect);
+		pbyte_t pSrcRow = static_cast<pbyte_t>(src.address) + addressOffset(src, rect);
+		pbyte_t pAlpRow = static_cast<pbyte_t>(alpha.address) + addressOffset(alpha, rect);
+		pbyte_t pSelRow = static_cast<pbyte_t>(select.address) + addressOffset(select, rect);
 		for (int y = 0; y < rows; ++y) {
 			pbyte_t pSrc = pSrcRow;
 			pbyte_t pDst = pDstRow;
