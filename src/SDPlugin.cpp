@@ -160,8 +160,9 @@ static void SwitchToMode(StableDiffusion::Mode mode, StableDiffusion::Params& pa
 	property.setInteger(ITEM_STEPS, config.sample_steps);
 	property.setDecimal(ITEM_STRENGTH, config.strength);
 	property.setDecimal(ITEM_CONTROL_STRENGTH, config.control_strength);
-	property.setString(ITEM_PROMPT, config.prompt);
-	property.setString(ITEM_NPROMPT, config.negative_prompt);
+	property.setStringDefault(ITEM_PROMPT, config.prompt);
+	property.setStringDefault(ITEM_NPROMPT, config.negative_prompt);
+
 }
 
 /// プロパティ同期
@@ -200,7 +201,7 @@ static void TRIGLAV_PLUGIN_CALLBACK FilterPropertyCallBack(Int* result, Property
 	(*result) = kTriglavPlugInPropertyCallBackResultNoModify;
 	if (notify != kTriglavPlugInPropertyCallBackNotifyValueChanged) return;
 	if (SyncProperty(itemKey, propertyObject, data)) {
-			(*result) = kTriglavPlugInPropertyCallBackResultModify;
+		(*result) = kTriglavPlugInPropertyCallBackResultModify;
 	}
 }
 
@@ -244,6 +245,18 @@ static bool TerminateFilter(TriglavPlugInServer* server, TriglavPlugInPtr* data)
 	return true;
 }
 
+// 画像からブロック
+inline Block ImageToBlock(const Image& image, int x, int y) {
+	return Block{
+		.rect{ x, y, static_cast<Int>(image.width) + x, static_cast<Int>(image.height) + y},
+		.address{ image.data() },
+		.rowBytes{ static_cast<Int>(image.width) * static_cast<Int>(image.channel)},
+		.pixelBytes{ static_cast<Int>(image.channel) }, .r{0}, .g{1}, .b{2},
+		.needOffset{true}
+	};
+}
+
+
 /// フィルタ実行
 /// @return 正常終了ならtrue
 static bool RunFilter(TriglavPlugInServer* server, TriglavPlugInPtr* data) {
@@ -255,9 +268,11 @@ static bool RunFilter(TriglavPlugInServer* server, TriglavPlugInPtr* data) {
 	StableDiffusion::Initialize(g_BasePath);
 
 	// 選択範囲の取得
-	auto selectAreaRect = run.GetSelectArea();
-	uint32_t width = selectAreaRect.right - selectAreaRect.left;
-	uint32_t height = selectAreaRect.bottom - selectAreaRect.top;
+	const auto selectAreaRect = run.GetSelectArea();
+	const auto width = selectAreaRect.right - selectAreaRect.left;
+	const auto height = selectAreaRect.bottom - selectAreaRect.top;
+	const auto offsetX = selectAreaRect.left;
+	const auto offsetY = selectAreaRect.top;
 
 	// オフスクリーンの取得
 	Offscreen offscreenSource(server), offscreenDestination(server), offscreenSelectArea(server);
@@ -278,20 +293,12 @@ static bool RunFilter(TriglavPlugInServer* server, TriglavPlugInPtr* data) {
 
 		// 入力画像の取得
 		Image inputImage = Image{ width, height, 3 };
-		Block dstBlock;
-		dstBlock.rect = selectAreaRect;
-		dstBlock.address = inputImage.data();
-		dstBlock.rowBytes = width * 3;
-		dstBlock.pixelBytes = 3;
-		dstBlock.r = 0;
-		dstBlock.g = 1;
-		dstBlock.b = 2;
+		Block inputBlock = ImageToBlock(inputImage, offsetX, offsetY);
 		auto sourceRects = offscreenSource.GetBlockRects(selectAreaRect);
-		for (const auto& blockRect : sourceRects) {
+		for (const auto& rect : sourceRects) {
 			if (run.Process(Run::States::Continue) != Run::Results::Continue) break;
-			Block srcBlock;
-			offscreenSource.GetBlockImage(blockRect, srcBlock);
-			Transfer(dstBlock, srcBlock);
+			Block srcBlock = offscreenSource.GetBlockImage(rect);
+			Transfer(inputBlock, srcBlock);
 		}
 		if (run.Result() == Run::Results::Restart) continue;
 		if (run.Result() == Run::Results::Exit) break;
@@ -299,46 +306,38 @@ static bool RunFilter(TriglavPlugInServer* server, TriglavPlugInPtr* data) {
 		run.Progress(1);
 
 		// 生成
-		params.width = selectAreaRect.right - selectAreaRect.left;
-		params.height = selectAreaRect.bottom - selectAreaRect.top;
-		print("generate : %i * %i", params.width, params.height);
-		auto result = StableDiffusion::Generate(params, inputImage);
-		print("generated: %i * %i", result.width, result.height);
+		params.width = width;
+		params.height = height;
 
-		// 生成した画像をブロック形式に
-		Block generatedBlock;
-		generatedBlock.rect = selectAreaRect;
-		generatedBlock.address = result.data();
-		generatedBlock.rowBytes = result.width * result.channel;
-		generatedBlock.pixelBytes = result.channel;
-		generatedBlock.r = 0;
-		generatedBlock.g = 1;
-		generatedBlock.b = 2;
+		print("generate by prompt: %s", params.prompt.c_str());
+		print("input image: %d * %d", width, height);
+		auto result = StableDiffusion::Generate(params, inputImage);
+		print("generated: %d * %d", result.width, result.height);
+		Block outputBlock = ImageToBlock(result, offsetX, offsetY);
+
 		run.Progress(2);
 
 		// ブロック転送
 		auto destRects = offscreenDestination.GetBlockRects(selectAreaRect);
-		for (const auto& blockRect : destRects) {
+		for (const auto& rect : destRects) {
 			if (run.Process(Run::States::Continue) != Run::Results::Continue) break;
 
 			// 転送先ブロック
-			Block imageBlock, alphaBlock;
-			offscreenDestination.GetBlockImage(blockRect, imageBlock);
-			offscreenDestination.GetBlockAlpha(blockRect, alphaBlock);
+			Block imageBlock = offscreenDestination.GetBlockImage(rect);
+			Block alphaBlock = offscreenDestination.GetBlockAlpha(rect);
 
 			if (offscreenSelectArea) {
 				// 選択範囲ブロック
-				Block selectBlock;
-				offscreenSelectArea.GetBlockSelectArea(blockRect, selectBlock);
+				Block selectBlock = offscreenSelectArea.GetBlockSelectArea(rect);
 
 				// 選択範囲（マスク）付きで描画
-				Transfer(imageBlock, generatedBlock, alphaBlock, selectBlock);
+				Transfer(imageBlock, outputBlock, alphaBlock, selectBlock);
 			} else {
 				// 選択範囲なしで描画（透明ピクセルは埋めない）
-				Transfer(imageBlock, generatedBlock, alphaBlock);
+				Transfer(imageBlock, outputBlock, alphaBlock);
 			}
 
-			run.UpdateRect(blockRect);
+			run.UpdateRect(rect);
 		}
 		if (run.Result() == Run::Results::Restart) continue;
 		if (run.Result() == Run::Results::Exit) break;
