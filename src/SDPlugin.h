@@ -8,3 +8,4 @@
 
 /// デバッグ出力
 extern void print(const char* format, ...);
+

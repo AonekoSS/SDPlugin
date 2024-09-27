@@ -1,14 +1,14 @@
 /**
- * @file TriglavPlugIn.cpp
+ * @file FilterPlugIn.cpp
  * @author 青猫 (AonekoSS)
- * @brief クリスタ用フィルターSDKのラッパー
+ * @brief フィルタープラグインAPI
  */
 #include "pch.h"
 
 #include "SDPlugin.h"
-#include "TriglavPlugIn.h"
+#include "FilterPlugIn.h"
 
-namespace TriglavPlugIn {
+namespace FilterPlugIn {
 	// バイト定義
 	typedef uint8_t byte_t;
 	typedef byte_t* pbyte_t;

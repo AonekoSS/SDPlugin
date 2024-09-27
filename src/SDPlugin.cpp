@@ -7,10 +7,10 @@
 #include <filesystem>
 
 #include "SDPlugin.h"
-#include "TriglavPlugIn.h"
+#include "FilterPlugIn.h"
 #include "StableDiffusion.h"
 
-using namespace TriglavPlugIn;
+using namespace FilterPlugIn;
 using namespace StableDiffusion;
 
 /// このプラグインのモジュールID（GUID）
@@ -97,9 +97,9 @@ enum PropertyKey {
 /// プラグイン初期化
 /// @return 正常終了ならtrue
 /// @note ここでfalse返すとクリスタのバージョン上げろって言われる
-static bool InitializeModule(TriglavPlugInServer* server, TriglavPlugInPtr* data) {
+static bool InitializeModule(FilterPlugIn::Server* server, FilterPlugIn::Ptr* data) {
 	// 初期化
-	TriglavPlugIn::ModuleInitialize initialize(server);
+	FilterPlugIn::ModuleInitialize initialize(server);
 	if (!initialize.Initialize(kModuleIDString)) return false;
 
 	// 情報インスタンス
@@ -112,7 +112,7 @@ static bool InitializeModule(TriglavPlugInServer* server, TriglavPlugInPtr* data
 
 /// プラグイン終了
 /// @return 正常終了ならtrue
-static bool TerminateModule(TriglavPlugInServer* server, TriglavPlugInPtr* data) {
+static bool TerminateModule(FilterPlugIn::Server* server, FilterPlugIn::Ptr* data) {
 	// 情報インスタンス解放
 	if (*data) {
 		delete static_cast<FilterInfo*>(*data);
@@ -197,19 +197,19 @@ static bool SyncProperty(Int itemKey, PropertyObject propertyObject, Ptr data) {
 }
 
 /// プロパティコールバック
-static void TRIGLAV_PLUGIN_CALLBACK FilterPropertyCallBack(Int* result, PropertyObject propertyObject, const Int itemKey, const Int notify, Ptr data) {
-	(*result) = kTriglavPlugInPropertyCallBackResultNoModify;
-	if (notify != kTriglavPlugInPropertyCallBackNotifyValueChanged) return;
+static void FilterPropertyCallBack(PropertyCallBackResult* result, PropertyObject propertyObject, const Int itemKey, const PropertyCallBackNotify notify, Ptr data) {
+	(*result) = PropertyCallBackResult::NoModify;
+	if (notify != PropertyCallBackNotify::ValueChanged) return;
 	if (SyncProperty(itemKey, propertyObject, data)) {
-		(*result) = kTriglavPlugInPropertyCallBackResultModify;
+		(*result) = PropertyCallBackResult::Modify;
 	}
 }
 
 
 /// フィルタ初期化
 /// @return 正常終了ならtrue
-static bool InitializeFilter(TriglavPlugInServer* server, TriglavPlugInPtr* data) {
-	TriglavPlugIn::Initialize initialize(server);
+static bool InitializeFilter(FilterPlugIn::Server* server, FilterPlugIn::Ptr* data) {
+	FilterPlugIn::Initialize initialize(server);
 	auto info = static_cast<FilterInfo*>(*data);
 	info->server = server;
 
@@ -240,7 +240,7 @@ static bool InitializeFilter(TriglavPlugInServer* server, TriglavPlugInPtr* data
 
 /// フィルタ終了
 /// @return 正常終了ならtrue
-static bool TerminateFilter(TriglavPlugInServer* server, TriglavPlugInPtr* data) {
+static bool TerminateFilter(Server* server, Ptr* data) {
 	// 特に解放するリソースは無い
 	return true;
 }
@@ -259,7 +259,7 @@ inline Block ImageToBlock(const Image& image, int x, int y) {
 
 /// フィルタ実行
 /// @return 正常終了ならtrue
-static bool RunFilter(TriglavPlugInServer* server, TriglavPlugInPtr* data) {
+static bool RunFilter(Server* server, Ptr* data) {
 	Run run(server);
 	auto info = static_cast<FilterInfo*>(*data);
 	info->server = server;
@@ -308,7 +308,7 @@ static bool RunFilter(TriglavPlugInServer* server, TriglavPlugInPtr* data) {
 		print("generate by prompt: %s", params.prompt.c_str());
 		print("input image: %d * %d", width, height);
 		auto result = StableDiffusion::Generate(params, inputImage,
-			[&run](int step, int steps){ // 進捗コールバック
+			[&run](int step, int steps) { // 進捗コールバック
 				run.Progress(step);
 				print("Progress %d / %d", step, steps);
 			});
@@ -348,6 +348,8 @@ static bool RunFilter(TriglavPlugInServer* server, TriglavPlugInPtr* data) {
 	return true;
 }
 
+
+
 /// @brief プラグインのエントリーポイント
 /// @param result ここに成否の結果をつっこむ
 /// @param data 共有データ
@@ -355,8 +357,8 @@ static bool RunFilter(TriglavPlugInServer* server, TriglavPlugInPtr* data) {
 /// @param server 処理サーバー（ホスト側アクセスが全部入ってる）
 /// @param reserved 予約済みかな？
 /// @return 無し
-void TRIGLAV_PLUGIN_API TriglavPluginCall(TriglavPlugInInt* result, TriglavPlugInPtr* data, TriglavPlugInInt selector, TriglavPlugInServer* server, TriglavPlugInPtr reserved) {
-	*result = kTriglavPlugInCallResultFailed;
+extern "C" __declspec(dllexport) void TriglavPluginCall(CallResult* result, Ptr* data, Selector selector, Server* server, void* reserved) {
+	*result = CallResult::Failed;
 
 	// 生きてないと困るものをチェック
 	if (!server) return;
@@ -367,28 +369,29 @@ void TRIGLAV_PLUGIN_API TriglavPluginCall(TriglavPlugInInt* result, TriglavPlugI
 
 	// 処理の振り分け
 	switch (selector) {
-	case kTriglavPlugInSelectorModuleInitialize:
+	case Selector::ModuleInitialize:
 		if (!server->recordSuite.moduleInitializeRecord) return;
 		if (!InitializeModule(server, data)) return;
 		break;
-	case kTriglavPlugInSelectorModuleTerminate:
+	case Selector::ModuleTerminate:
 		if (!TerminateModule(server, data)) return;
 		break;
-	case kTriglavPlugInSelectorFilterInitialize:
+	case Selector::FilterInitialize:
 		print("InitializeFilter {");
 		if (!server->recordSuite.filterInitializeRecord) return;
 		if (!InitializeFilter(server, data)) return;
 		print("InitializeFilter }");
 		break;
-	case kTriglavPlugInSelectorFilterTerminate:
+	case Selector::FilterTerminate:
 		if (!TerminateFilter(server, data)) return;
 		break;
-	case kTriglavPlugInSelectorFilterRun:
+	case Selector::FilterRun:
 		print("RunFilter {");
 		if (!server->recordSuite.filterRunRecord) return;
 		if (!RunFilter(server, data)) return;
 		print("RunFilter }");
 		break;
 	}
-	*result = kTriglavPlugInCallResultSuccess;
+	*result = CallResult::Success;
 }
+

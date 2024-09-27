@@ -165,7 +165,7 @@
   <ItemGroup>
     <ClCompile Include="SDPlugin.cpp" />
     <ClCompile Include="StableDiffusion.cpp" />
-    <ClCompile Include="TriglavPlugIn.cpp" />
+    <ClCompile Include="FilterPlugIn.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resource.rc" />
@@ -180,7 +180,7 @@
     <ClInclude Include="resource.h" />
     <ClInclude Include="SDPlugin.h" />
     <ClInclude Include="StableDiffusion.h" />
-    <ClInclude Include="TriglavPlugIn.h" />
+    <ClInclude Include="FilterPlugIn.h" />
   </ItemGroup>
   <ItemGroup>
     <CopyFileToFolders Include="install.bat">
