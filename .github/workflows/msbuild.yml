@@ -1,0 +1,46 @@
+name: MSBuild and release
+on:
+  push:
+     tags:
+       - "v*.*"
+env:
+  SOLUTION_FILE_PATH: ./src/SDPlugin.sln
+  BUILD_CONFIGURATION: Release
+  OUTPUT_FILENAME: ./bin/SDPlugin
+  RELEASE_FILENAME: ./bin/SDPlugin_${{ github.event.release.tag_name }}.zip
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Add MSBuild to PATH
+      uses: microsoft/setup-msbuild@v1.0.2
+
+    - name: Restore NuGet packages
+      working-directory: ${{env.GITHUB_WORKSPACE}}
+      run: nuget restore ${{env.SOLUTION_FILE_PATH}}
+
+    - name: Build
+      working-directory: ${{env.GITHUB_WORKSPACE}}
+      run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} ${{env.SOLUTION_FILE_PATH}}
+
+    - name: Archive Release
+      uses: thedoctor0/zip-release@main
+      with:
+        type: 'zip'
+        filename: ${{ env.RELEASE_FILENAME }}
+        exclusions: '*.zip*'
+
+    - name: Rename
+      run: mv ${{ env.OUTPUT_FILENAME }}.zip ${{ env.RELEASE_FILENAME }}
+
+    - name: Release
+      uses: softprops/action-gh-release@v2
+      with:
+       files: ${{ env.RELEASE_FILENAME }}
