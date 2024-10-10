@@ -23,6 +23,10 @@ std::string g_BasePath;
 /// デバッグログの書き出し先
 std::string g_DebugPath;
 
+/// 設定リスト
+std::vector<std::string> g_Settings;
+
+
 /// デバッグ出力の開始
 void InitDebugOutput(const std::string& basePath) {
 	g_DebugPath = basePath + "debuglog.txt";
@@ -82,11 +86,12 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD  fdwReason, LPVOID lpReserved) {
 struct FilterInfo {
 	Server const* server;
 	StableDiffusion::Params params;
+	int setting;
 };
 
 /// プロパティキー
 enum PropertyKey {
-	ITEM_FUNCTION = 1,
+	ITEM_SETTING = 1,
 	ITEM_STEPS,
 	ITEM_STRENGTH,
 	ITEM_CONTROL_STRENGTH,
@@ -124,45 +129,78 @@ static bool TerminateModule(FilterPlugIn::Server* server, FilterPlugIn::Ptr* dat
 }
 
 
+/// @brief 設定ファイルのパス
+/// @return iniファイルのフルパスを返す
+static std::string GetIniPath()
+{
+	return g_BasePath + "SDPlugin.ini";
+}
+
+/// @brief 設定ファイルのセクション
+/// @return COMMON以外のセクションを返す
+static std::vector<std::string> GetIniSections(const std::string& iniPath)
+{
+		char sections[4096];
+		GetPrivateProfileSectionNamesA(sections, sizeof(sections), iniPath.c_str());
+		char *section = sections;
+		std::vector<std::string> result;
+		while (*section != NULL)
+		{
+			std::string name = section;
+			print(section);
+			if (name != "COMMON") result.push_back(name);
+			section += strlen(section) + 1;
+		}
+		return result;
+}
+
+/// @brief 文字列のUNICODE化
+/// @param str ShiftJIS文字列
+/// @return UNICODE文字列
+std::wstring ShiftJIS_to_UTF16(const std::string& str)
+{
+    static_assert(sizeof(wchar_t) == 2, "for windows only");
+    const int len = MultiByteToWideChar(CP_ACP, 0, str.c_str(), -1, NULL, 0);
+    std::vector<wchar_t> result(len, L'\0');
+    MultiByteToWideChar(CP_ACP, 0, str.c_str(), -1, &result[0], len);
+    return &result[0];
+}
+
 /// プロパティの初期化
 static void InitProperty(Property& p) {
-	auto type = p.addEnumerationItem(ITEM_FUNCTION, "Function Type");
-	type.addValue((int)Mode::TXT2IMG, "TXT2IMG");
-	type.addValue((int)Mode::IMG2IMG, "IMG2IMG");
-	type.addValue((int)Mode::CONTROL, "CONTROL");
+	auto setting = p.addEnumerationItem(ITEM_SETTING, "Setting");
+	for(int i = 0; i < g_Settings.size(); ++i) {
+		setting.addValue(i, ShiftJIS_to_UTF16(g_Settings[i])); // UI側はUNICODEが良い
+	}
 
 	p.addIntegerItem(ITEM_STEPS, "Steps", 20, 1, 60);
-	p.addDecimalItem(ITEM_STRENGTH, "Stremgth", 0.5, 0.0, 1.0);
-	p.addDecimalItem(ITEM_CONTROL_STRENGTH, "Control Stremgth", 8.0, 1.0, 20.0);
+	p.addDecimalItem(ITEM_STRENGTH, "Strength", 0.5, 0.0, 1.0);
+	p.addDecimalItem(ITEM_CONTROL_STRENGTH, "Control Strength", 8.0, 1.0, 20.0);
 
 	p.addStringItem(ITEM_PROMPT, "Prompt", 800);
 	p.addStringItem(ITEM_NPROMPT, "Negative Prompt", 800);
 }
 
-/// @brief モードの切り替え
-/// @param mode スイッチ先のモード
+/// @brief 設定の切り替え
+/// @param index スイッチ先の設定インデックス
 /// @param data フィルター情報
 /// @param propertyObject 反映先プロパティ
-static void SwitchToMode(StableDiffusion::Mode mode, StableDiffusion::Params& params, Property& property) {
+static void SwitchToSetting(int index, StableDiffusion::Params& params, Property& property) {
+	if (index < 0 || g_Settings.size() <= index) return;
+	const auto setting = g_Settings[index];
+
 	// コンフィグのロード
-	auto iniPath = g_BasePath + "SDPlugin.ini";
-	print("load: %s", iniPath.c_str());
-	auto config = LoadParams(iniPath, "COMMON");
-	switch (mode) {
-	case Mode::TXT2IMG: config = LoadParams(iniPath, "TXT2IMG", config); break;
-	case Mode::IMG2IMG: config = LoadParams(iniPath, "IMG2IMG", config); break;
-	case Mode::CONTROL: config = LoadParams(iniPath, "CONTROL", config); break;
-	}
-	config.mode = mode;
-	params = config;
+	auto iniPath = GetIniPath();
+	auto common = LoadParams(iniPath, "COMMON");
+	params = LoadParams(iniPath, setting, common);
 
 	// プロパティへの反映
-	property.setInteger(ITEM_STEPS, config.sample_steps);
-	property.setDecimal(ITEM_STRENGTH, config.strength);
-	property.setDecimal(ITEM_CONTROL_STRENGTH, config.control_strength);
-	property.setStringDefault(ITEM_PROMPT, config.prompt);
-	property.setStringDefault(ITEM_NPROMPT, config.negative_prompt);
-
+	property.setEnumeration(ITEM_SETTING, index);
+	property.setInteger(ITEM_STEPS, params.sample_steps);
+	property.setDecimal(ITEM_STRENGTH, params.strength);
+	property.setDecimal(ITEM_CONTROL_STRENGTH, params.control_strength);
+	property.setStringDefault(ITEM_PROMPT, params.prompt);
+	property.setStringDefault(ITEM_NPROMPT, params.negative_prompt);
 }
 
 /// プロパティ同期
@@ -172,12 +210,13 @@ static bool SyncProperty(Int itemKey, PropertyObject propertyObject, Ptr data) {
 	Property property(info.server, propertyObject);
 
 	switch (itemKey) {
-	case ITEM_FUNCTION:
+	case ITEM_SETTING:
 	{
-		// モード変更を検出してコンフィグを切り替える
-		auto mode = Mode(property.getEnumeration(ITEM_FUNCTION));
-		if (params.mode != mode) {
-			SwitchToMode(mode, params, property);
+		// 設定変更を検出してコンフィグを切り替える
+		auto setting = Mode(property.getEnumeration(ITEM_SETTING));
+		if (info.setting != setting) {
+			SwitchToSetting(setting, params, property);
+			info.setting = setting;
 			return true;
 		}
 	}
@@ -213,6 +252,9 @@ static bool InitializeFilter(FilterPlugIn::Server* server, FilterPlugIn::Ptr* da
 	auto info = static_cast<FilterInfo*>(*data);
 	info->server = server;
 
+	// 設定リストの初期化
+	g_Settings = GetIniSections(GetIniPath());
+
 	//	フィルタカテゴリ名とフィルタ名の設定
 	initialize.SetCategoryName("Stable Diffusion", 'x');
 	initialize.SetFilterName("Generate", 'x');
@@ -230,7 +272,10 @@ static bool InitializeFilter(FilterPlugIn::Server* server, FilterPlugIn::Ptr* da
 	auto property = Property(server);
 	InitProperty(property);
 	initialize.SetProperty(property);
-	SwitchToMode(Mode::TXT2IMG, info->params, property);
+
+	// 初回は0番設定に
+	SwitchToSetting(0, info->params, property);
+	info->setting = 0;
 
 	//	プロパティコールバック
 	initialize.SetPropertyCallBack(FilterPropertyCallBack, *data);
@@ -264,6 +309,10 @@ static bool RunFilter(Server* server, Ptr* data) {
 	auto info = static_cast<FilterInfo*>(*data);
 	info->server = server;
 
+	// 前回の設定で開く
+	Property property(server, run.GetProperty());
+	SwitchToSetting(info->setting, info->params, property);
+
 	// 生成ライブラリの初期化
 	StableDiffusion::Initialize(g_BasePath);
 
@@ -283,6 +332,7 @@ static bool RunFilter(Server* server, Ptr* data) {
 	// メイン処理
 	while (true) {
 		if (run.Process(Run::States::Start) == Run::Results::Exit) break;
+
 		// パラメータの取得
 		auto params = info->params;
 		if (params.prompt.empty()) { print("empty prompt!"); return false; }

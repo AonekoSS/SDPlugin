@@ -115,6 +115,14 @@ namespace StableDiffusion {
 		auto s = iniGetString(filePath, section, key);
 		if (s == "true") val = true; else if (s == "false") val = false;
 	}
+	// iniファイル読み込み：Mode
+	static void ini(const std::string& filePath, const std::string& section, const std::string& key, Mode& val){
+		auto s = iniGetString(filePath, section, key);
+		if (s.empty()) return;
+		else if (s == "TXT2IMG") val = TXT2IMG;
+		else if (s == "IMG2IMG") val = IMG2IMG;
+		else if (s == "CONTROL") val = CONTROL;
+	}
 	// iniファイル読み込み：sample_method_t
 	static void ini(const std::string& filePath, const std::string& section, const std::string& key, sample_method_t& val){
 		auto s = iniGetString(filePath, section, key);
@@ -148,6 +156,7 @@ namespace StableDiffusion {
 	/// @return 設定データ
 	Params LoadParams(const std::string& filePath, const std::string& section, const Params& defaultParams){
 		Params p = defaultParams;
+	    ini(filePath, section, "mode", p.mode);
 	    ini(filePath, section, "model_path", p.model_path);
 	    ini(filePath, section, "clip_l_path", p.clip_l_path);
 	    ini(filePath, section, "t5xxl_path", p.t5xxl_path);
