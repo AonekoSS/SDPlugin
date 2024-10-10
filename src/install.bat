@@ -2,10 +2,23 @@
 chcp 932
 
 set APP_NAME=SDPlugin
-set APP_DIR=%USERPROFILE%\Documents\CELSYS\CLIPStudioModule\PlugIn\PAINT\%APP_NAME%\
+
+:RESTART
+echo ------------------------------------------------------------
+echo プラグインのインストール先は、CLIP Studioのバージョンによって違います。
+echo お使いのバージョンが「1.10.13」以降であれば「1」を、それより古い場合は「2」を入力してください。
+echo ------------------------------------------------------------
+set /p VER="バージョン確認: "
+IF %VER% == 1 (
+	set APP_DIR=%USERPROFILE%\AppData\Roaming\CELSYSUserData\CELSYS\CLIPStudioModule\PlugIn\PAINT\%APP_NAME%\
+) ELSE IF %VER% == 2 (
+	set APP_DIR=%USERPROFILE%\Documents\CELSYS\CLIPStudioModule\PlugIn\PAINT\%APP_NAME%\
+) ELSE (
+	GOTO RESTART
+)
 
 echo ------------------------------------------------------------
-echo プラグインをCLIP Studioのプラグイン用フォルダにインストールします。
+echo プラグインをプラグイン用フォルダにインストールします。
 echo アンインストールする時はフォルダごと削除してください。
 echo インストール先：  %APP_DIR%
 echo ------------------------------------------------------------
