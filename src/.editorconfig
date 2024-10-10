@@ -11,3 +11,6 @@ indent_size = 4
 
 [*.bat]
 charset = unset
+
+[*.ini]
+charset = unset
