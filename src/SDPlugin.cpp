@@ -147,7 +147,6 @@ static std::vector<std::string> GetIniSections(const std::string& iniPath)
 		while (*section != NULL)
 		{
 			std::string name = section;
-			print(section);
 			if (name != "COMMON") result.push_back(name);
 			section += strlen(section) + 1;
 		}
