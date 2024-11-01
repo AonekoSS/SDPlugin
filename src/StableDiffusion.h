@@ -25,6 +25,7 @@ namespace StableDiffusion {
 		// 基本設定
 		std::string model_path{};
 		std::string clip_l_path{};
+		std::string clip_g_path{};
 		std::string t5xxl_path{};
 		std::string diffusion_model_path{};
 		std::string vae_path{};

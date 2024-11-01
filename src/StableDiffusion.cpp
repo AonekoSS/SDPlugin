@@ -159,6 +159,7 @@ namespace StableDiffusion {
 	    ini(filePath, section, "mode", p.mode);
 	    ini(filePath, section, "model_path", p.model_path);
 	    ini(filePath, section, "clip_l_path", p.clip_l_path);
+	    ini(filePath, section, "clip_g_path", p.clip_g_path);
 	    ini(filePath, section, "t5xxl_path", p.t5xxl_path);
 	    ini(filePath, section, "diffusion_model_path", p.diffusion_model_path);
 	    ini(filePath, section, "vae_path", p.vae_path);
@@ -244,6 +245,7 @@ namespace StableDiffusion {
 		auto sd_ctx = new_sd_ctx(
 			params.model_path.c_str(),
 			params.clip_l_path.c_str(),
+			params.clip_g_path.c_str(),
 			params.t5xxl_path.c_str(),
 			params.diffusion_model_path.c_str(),
 			params.vae_path.c_str(),
