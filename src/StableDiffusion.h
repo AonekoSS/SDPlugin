@@ -44,6 +44,7 @@ namespace StableDiffusion {
 		bool clip_on_cpu{ false };
 		bool control_net_cpu{ false };
 		bool vae_on_cpu{ false };
+		bool diffusion_flash_attn { false };
 
 		// 生成パラメータ
 		std::string prompt{};
@@ -61,6 +62,10 @@ namespace StableDiffusion {
 		float style_ratio{ 20.f };
 		bool normalize_input{ false };
 		std::string input_id_images_path{};
+		std::vector<int> skip_layers {};
+		float slg_scale { 0 };
+		float skip_layer_start { 0.01 };
+		float skip_layer_end { 0.2 };
 	};
 
 	// イメージ
