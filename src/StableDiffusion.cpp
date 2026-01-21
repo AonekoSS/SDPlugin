@@ -15,12 +15,17 @@ namespace StableDiffusion {
 	// DLL各関数のポインタ
 #define DECL_FUNCTION(function) static decltype(::function)* function
 
+	DECL_FUNCTION(sd_ctx_params_init);
+	DECL_FUNCTION(sd_ctx_params_to_str);
 	DECL_FUNCTION(new_sd_ctx);
 	DECL_FUNCTION(free_sd_ctx);
-	DECL_FUNCTION(img2img);
-	DECL_FUNCTION(txt2img);
-	DECL_FUNCTION(get_num_physical_cores);
+	DECL_FUNCTION(sd_img_gen_params_init);
+	DECL_FUNCTION(sd_img_gen_params_to_str);
+	DECL_FUNCTION(generate_image);
 	DECL_FUNCTION(sd_type_name);
+	DECL_FUNCTION(str_to_rng_type);
+	DECL_FUNCTION(str_to_sample_method);
+	DECL_FUNCTION(str_to_scheduler);
 	DECL_FUNCTION(sd_set_log_callback);
 	DECL_FUNCTION(sd_set_progress_callback);
 
@@ -41,12 +46,17 @@ namespace StableDiffusion {
 		}
 
 		// 各関数のバインディング
+		BIND_FUNCTION(sd_ctx_params_init);
+		BIND_FUNCTION(sd_ctx_params_to_str);
 		BIND_FUNCTION(new_sd_ctx);
 		BIND_FUNCTION(free_sd_ctx);
-		BIND_FUNCTION(img2img);
-		BIND_FUNCTION(txt2img);
-		BIND_FUNCTION(get_num_physical_cores);
+		BIND_FUNCTION(sd_img_gen_params_init);
+		BIND_FUNCTION(sd_img_gen_params_to_str);
+		BIND_FUNCTION(generate_image);
 		BIND_FUNCTION(sd_type_name);
+		BIND_FUNCTION(str_to_rng_type);
+		BIND_FUNCTION(str_to_sample_method);
+		BIND_FUNCTION(str_to_scheduler);
 		BIND_FUNCTION(sd_set_log_callback);
 		BIND_FUNCTION(sd_set_progress_callback);
 	}
@@ -123,32 +133,6 @@ namespace StableDiffusion {
 		else if (s == "IMG2IMG") val = IMG2IMG;
 		else if (s == "CONTROL") val = CONTROL;
 	}
-	// iniファイル読み込み：sample_method_t
-	static void ini(const std::string& filePath, const std::string& section, const std::string& key, sample_method_t& val){
-		auto s = iniGetString(filePath, section, key);
-		if (s.empty()) return;
-		else if (s == "euler_a") val = EULER_A;
-		else if (s == "euler") val = EULER;
-		else if (s == "heun") val = HEUN;
-		else if (s == "dpm2") val = DPM2;
-		else if (s == "dpm++2s_a") val = DPMPP2S_A;
-		else if (s == "dpm++2m") val = DPMPP2M;
-		else if (s == "dpm++2mv2") val = DPMPP2Mv2;
-		else if (s == "ipndm") val = IPNDM;
-		else if (s == "ipndm_v") val = IPNDM_V;
-		else if (s == "lcm") val = LCM;
-	}
-	// iniファイル読み込み：schedule_t
-	static void ini(const std::string& filePath, const std::string& section, const std::string& key, schedule_t& val){
-		auto s = iniGetString(filePath, section, key);
-		if (s.empty()) return;
-		else if (s == "default") val = DEFAULT;
-		else if (s == "discrete") val = DISCRETE;
-		else if (s == "karras") val = KARRAS;
-		else if (s == "exponential") val = EXPONENTIAL;
-		else if (s == "ays") val = AYS;
-		else if (s == "gits") val = GITS;
-	}
 
 	/// 設定のロード
 	/// @param file 設定ファイルのパス
@@ -166,24 +150,13 @@ namespace StableDiffusion {
 	    ini(filePath, section, "taesd_path", p.taesd_path);
 	    ini(filePath, section, "controlnet_path", p.controlnet_path);
 	    ini(filePath, section, "lora_model_dir", p.lora_model_dir);
-	    ini(filePath, section, "embeddings_path", p.embeddings_path);
-	    ini(filePath, section, "stacked_id_embeddings_path", p.stacked_id_embeddings_path);
-	    ini(filePath, section, "vae_decode_only", p.vae_decode_only);
-	    ini(filePath, section, "vae_tiling", p.vae_tiling);
-	    ini(filePath, section, "free_params_immediately", p.free_params_immediately);
-	    ini(filePath, section, "n_threads", p.n_threads);
-	    // wtype
-		// rng_type
-	    ini(filePath, section, "schedule", p.schedule);
-	    ini(filePath, section, "clip_on_cpu", p.clip_on_cpu);
-	    ini(filePath, section, "control_net_cpu", p.control_net_cpu);
-	    ini(filePath, section, "vae_on_cpu", p.vae_on_cpu);
 
 	    ini(filePath, section, "prompt", p.prompt);
 	    ini(filePath, section, "negative_prompt", p.negative_prompt);
 	    ini(filePath, section, "clip_skip", p.clip_skip);
 	    ini(filePath, section, "cfg_scale", p.cfg_scale);
 	    ini(filePath, section, "guidance", p.guidance);
+		ini(filePath, section, "scheduler", p.scheduler);
 	    ini(filePath, section, "sample_method", p.sample_method);
 	    ini(filePath, section, "sample_steps", p.sample_steps);
 	    ini(filePath, section, "strength", p.strength);
@@ -205,6 +178,7 @@ namespace StableDiffusion {
 		const int batch_count = 1;
 
 		sd_set_progress_callback([](int step, int steps, float time, void* data){
+			print("progress: %d/%d, time: %f", step, steps, time);
 			auto callback = reinterpret_cast<decltype(progressCallback)*>(data);
 			(*callback)(step, steps);
 		}, &progressCallback);
@@ -213,16 +187,10 @@ namespace StableDiffusion {
 		auto mode = params.mode;
 		auto width = params.width;
 		auto height = params.height;
-		auto n_threads = params.n_threads;
 		auto seed = params.seed;
 
 		// 入力無しならt2iに
 		if (input.channel == 0) mode = TXT2IMG;
-
-		// スレッド数
-		if (n_threads <= 0) {
-			n_threads = get_num_physical_cores();
-		}
 
 		// ランダムシード
 		if (seed < 0) {
@@ -234,87 +202,58 @@ namespace StableDiffusion {
 		width = (width + 0b000000111111) & 0b111111000000;
 		height = (height + 0b000000111111) & 0b111111000000;
 
-		// コントロール画像
-		auto control = sd_image_t{ input.width, input.height, input.channel, input.data() };
-		sd_image_t* control_image = nullptr;
-		if (mode == CONTROL && input.channel && params.controlnet_path.size()) {
-			control_image = &control;
-		}
+		// コンテキスト初期化
+		sd_ctx_params_t ctx_params;
+		sd_ctx_params_init(&ctx_params);
+		ctx_params.model_path = params.model_path.c_str();
+		ctx_params.clip_l_path = params.clip_l_path.c_str();
+		ctx_params.clip_g_path = params.clip_g_path.c_str();
+		ctx_params.t5xxl_path = params.t5xxl_path.c_str();
+		ctx_params.diffusion_model_path = params.diffusion_model_path.c_str();
+		ctx_params.vae_path = params.vae_path.c_str();
+		ctx_params.taesd_path = params.taesd_path.c_str();
+		ctx_params.control_net_path = params.controlnet_path.c_str();
+		ctx_params.vae_decode_only = (params.mode == IMG2IMG);
+		if (params.verbose) print("new_sd_ctx(\n%s)", sd_ctx_params_to_str(&ctx_params));
 
-		// コンテキスト生成
-		auto sd_ctx = new_sd_ctx(
-			params.model_path.c_str(),
-			params.clip_l_path.c_str(),
-			params.clip_g_path.c_str(),
-			params.t5xxl_path.c_str(),
-			params.diffusion_model_path.c_str(),
-			params.vae_path.c_str(),
-			params.taesd_path.c_str(),
-			params.controlnet_path.c_str(),
-			params.lora_model_dir.c_str(),
-			params.embeddings_path.c_str(),
-			params.stacked_id_embeddings_path.c_str(),
-			params.vae_decode_only,
-			params.vae_tiling,
-			params.free_params_immediately,
-			n_threads,
-			params.wtype,
-			params.rng_type,
-			params.schedule,
-			params.clip_on_cpu,
-			params.control_net_cpu,
-			params.vae_on_cpu);
-
+		auto sd_ctx = new_sd_ctx(&ctx_params);
 		if (!sd_ctx) {
 			print("sd::new_sd_ctx: initialize error!");
 			return Image();
 		}
 
-		// 生成
-		sd_image_t* results = nullptr;
+		sd_img_gen_params_t gen_params;
+		sd_img_gen_params_init(&gen_params);
+		gen_params.prompt = params.prompt.c_str();
+		gen_params.negative_prompt = params.negative_prompt.c_str();
+		gen_params.clip_skip = params.clip_skip;
+		gen_params.width = width;
+		gen_params.height = height;
+		gen_params.sample_params.guidance.txt_cfg = params.cfg_scale;
+		gen_params.sample_params.scheduler = str_to_scheduler(params.scheduler.c_str());
+		gen_params.sample_params.sample_method = str_to_sample_method(params.sample_method.c_str());
+		gen_params.sample_params.sample_steps = params.sample_steps;
+		gen_params.strength = params.strength;
+		gen_params.seed = params.seed;
+		gen_params.batch_count = batch_count;
+		gen_params.control_strength = params.control_strength;
+
+		// 入力画像
+		auto input_image = sd_image_t{ input.width, input.height, input.channel, input.data() };
 		switch (params.mode) {
 		case TXT2IMG:
-		case CONTROL:
-			results = txt2img(sd_ctx,
-				params.prompt.c_str(),
-				params.negative_prompt.c_str(),
-				params.clip_skip,
-				params.cfg_scale,
-				params.guidance,
-				width,
-				height,
-				params.sample_method,
-				params.sample_steps,
-				params.seed,
-				batch_count,
-				control_image,
-				params.control_strength,
-				params.style_ratio,
-				params.normalize_input,
-				params.input_id_images_path.c_str());
 			break;
 		case IMG2IMG:
-			results = img2img(sd_ctx,
-				sd_image_t{ input.width, input.height, input.channel, input.data() },
-				params.prompt.c_str(),
-				params.negative_prompt.c_str(),
-				params.clip_skip,
-				params.cfg_scale,
-				params.guidance,
-				width,
-				height,
-				params.sample_method,
-				params.sample_steps,
-				params.strength,
-				params.seed,
-				batch_count,
-				control_image,
-				params.control_strength,
-				params.style_ratio,
-				params.normalize_input,
-				params.input_id_images_path.c_str());
+			gen_params.init_image = input_image;
+			break;
+		case CONTROL:
+			gen_params.control_image = input_image;
 			break;
 		}
+
+		// 生成
+		if (params.verbose) print("gen_params(\n%s)", sd_img_gen_params_to_str(&gen_params));
+		sd_image_t* results = generate_image(sd_ctx, &gen_params);
 		free_sd_ctx(sd_ctx);
 
 		if (!results) {
