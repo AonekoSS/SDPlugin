@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file StableDiffusion.h
  * @author 青猫 (AonekoSS)
  * @brief stable-diffusion.cppのDLLを呼ぶためのラッパー
@@ -20,7 +20,7 @@ namespace StableDiffusion {
 	struct Params {
 		// 動作オプション
 		Mode mode{ TXT2IMG };
-		bool verbose{ false };
+		bool verbose{ true };
 
 		// 基本設定
 		std::string model_path{};
@@ -32,18 +32,6 @@ namespace StableDiffusion {
 		std::string taesd_path{};
 		std::string controlnet_path{};
 		std::string lora_model_dir{};
-		std::string embeddings_path{};
-		std::string stacked_id_embeddings_path{};
-		bool vae_decode_only{ true };
-		bool vae_tiling{ false };
-		bool free_params_immediately{ true };
-		int n_threads{ -1 };
-		sd_type_t wtype{ SD_TYPE_COUNT };
-		rng_type_t rng_type{ CUDA_RNG };
-		schedule_t schedule{ DEFAULT };
-		bool clip_on_cpu{ false };
-		bool control_net_cpu{ false };
-		bool vae_on_cpu{ false };
 
 		// 生成パラメータ
 		std::string prompt{};
@@ -53,7 +41,8 @@ namespace StableDiffusion {
 		float guidance{ 3.5f };
 		int width{ 1024 };
 		int height{ 1024 };
-		sample_method_t sample_method{ EULER_A };
+		std::string scheduler{};
+		std::string sample_method{};
 		int sample_steps{ 20 };
 		float strength{ 0.75f };
 		int64_t seed{ -1 };

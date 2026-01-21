@@ -70,12 +70,12 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <IntDir>..\obj\</IntDir>
-    <OutDir>$(USERPROFILE)\Documents\CELSYS\CLIPStudioModule\PlugIn\PAINT\$(ProjectName)\</OutDir>
+    <OutDir>$(USERPROFILE)\AppData\Roaming\CELSYSUserData\CELSYS\CLIPStudioModule\PlugIn\PAINT\$(ProjectName)\</OutDir>
     <TargetExt>.cpm</TargetExt>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <IntDir>..\obj\</IntDir>
-    <OutDir>$(USERPROFILE)\Documents\CELSYS\CLIPStudioModule\PlugIn\PAINT\$(ProjectName)\</OutDir>
+    <OutDir>$(USERPROFILE)\AppData\Roaming\CELSYSUserData\CELSYS\CLIPStudioModule\PlugIn\PAINT\$(ProjectName)\</OutDir>
     <TargetExt>.cpm</TargetExt>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">

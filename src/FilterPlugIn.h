@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file FilterPlugIn.h
  * @author 青猫 (AonekoSS)
  * @brief フィルタープラグインAPI

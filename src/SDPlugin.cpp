@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file SDPlugin.cpp
  * @author 青猫 (AonekoSS)
  * @brief クリスタ用の画像生成プラグイン：メインモジュール

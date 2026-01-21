@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file SDPlugin.h
  * @author 青猫 (AonekoSS)
  * @brief 基本ヘッダー
