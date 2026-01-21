@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file StableDiffusion.cpp
  * @author 青猫 (AonekoSS)
  * @brief stable-diffusion.cppのDLLを呼ぶためのラッパー
